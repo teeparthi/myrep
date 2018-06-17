@@ -1,0 +1,184 @@
+
+::CHEF::
+
+
+Chef - Pull based config-management/deployment tool.
+
+
+Terms used in Chef:-
+
+
+-Recipe: Collection of tasks to be executed. (~ playbooks in ansible)
+
+- Cookbooks: Collection of recipes.
+
+
+-Workstation:
+Chef comprises of a workstation which is configured to develop the recipes and cookbooks.
+It is also configured to run the 'knife' and synchronizes with the chef-repo to keep it up-to-date.
+
+-Server:
+Chef server stores recipes/cookbooks and assigns on to the nodes depending on their requirements.
+
+-Nodes:
+Clients where the provisioning will happen.
+
+
+|       Workstation         | ---------> |    Chef Server     |   ----------->  | Node |
+
+   Preparing cookbooks                      Keeping Cookbooks                 Endpoint/Client
+
+
+
+
+== Either do the above or use "chef-solo"
+
+
+Configuring Workstation - Installation:
+
+
+yum install wget -y
+wget https://packages.chef.io/stable/el/7/chefdk-0.14.25-1.el7.x86_64.rpm
+rpm -ivh chefdk-0.14.25-1.el7.x86_64.rpm
+OR,
+yum install chefdk-0.14.25-1.el7.x86_64.rpm
+
+
+Verify installation:
+
+rpm -qa chefdk
+chefdk-0.14.25-1.el7.x86_64 (Should show this as output)
+
+
+
+  What is ChefDK:
+
+The Chef Development Kit contains everything to start with Chef, along with the tools essential for code management.
+
+-It contains a new command-line tool, "chef"
+-The cookbook dependency manager Berkshelf
+-The Test Kitchen integration testing framework.
+-ChefSpec for testing the cookbook syntax
+-Chef tools like Chef Client & Knife
+
+
+Note: You can install chefdk in one system and that becomes workstation-server-client-aio or remote push it also.
+
+
+:: Recipe Demo::
+
+  (create a httpd server with index.html)
+
+Recipe file creation:
+Add below contents in a file say, apache_installer.rb --
+
+package 'httpd'
+service 'httpd' do
+action [:enable, :start]
+end
+
+file '/var/www/html/index.html' do
+content 'Welcome to Apache in Chef'
+end
+
+
+
+
+Recipe Execution:
+
+chef-apply apache_installer.rb
+
+
+
+
+
+Cookbook: is a Combination of chef recipes
+
+Generate Cookbook Skeleton:
+  chef generate cookbook httpd_cookbook
+  chef generate template httpd_cookbook index.html
+
+Public Cookbook library:  https://supermarket.chef.io/cookbooks
+
+Directly download cookbook or use the Knife command.
+
+
+Knife:
+
+  knife cookbook site download nagios3
+
+
+Tree Structure of example cookbook ====
+
+.
+|-- attributes
+|   `-- default.rb
+|-- Berksfile
+|-- files
+|   `-- default
+|       |-- check_logfiles
+|       |-- check_service_status.sh
+|       `-- log_cfg
+|           |-- apache_log.cfg
+|           `-- tomcat_log.cfg
+|-- Gemfile
+|-- metadata.json
+|-- metadata.rb
+|-- nagios1.png
+|-- nagios2.png
+|-- README.md
+|-- recipes
+|   |-- default.rb
+|   |-- nagios_check.rb
+|   |-- nagios_client.rb
+|   `-- nagios_server.rb
+`-- templates
+    `-- default
+        |-- centos_nagios_apache2.conf.erb
+        |-- check_ip_address.sh.erb
+
+Berksfile : It is the configuration file, which mainly tells BerkShelf what are the cookbook's dependencies, which can be specified directly inside this file or indirectly through metadata.rb. It also tells Berkshelf where it should look for those dependencies.
+
+Chefignore : It tells Chef which all files should be ignored while uploading a cookbook to the Chef server.
+
+metadata.rb : It contains meta information about you cookbook, such as name, contacts or description. It can also state the cookbook’s dependencies.
+
+README.md : It contains documentation entry point for the repo.
+
+Recipes : Contains the cookbook's recipes. It starts with executing the file default.rb.
+
+default.rb : The default recipe format.
+
+specs : It will be storing the unit test cases of your libraries.
+
+test : It will be storing the unit test cases of your recipes.
+
+
+- Running cookbooks:
+
+(Example here https://github.com/prasanjit-/chef_cookbook_nagios)
+
+  1. Use Chef-Server/Client Mechanism (Traditional)
+  2. Use chef-solo
+
+Using Chef Solo to execute cookbooks:
+
+  a. Just outside cookbook directory run-
+    echo "cookbook_path ['$PWD']" > solo.rb
+
+  b. Create a recipes.json for with content as: (check cookbook name from metadata)
+    {
+  "run_list": [
+    "recipe[nagios3::default]",
+    "recipe[nagios3::nagios_check]",
+    "recipe[nagios3::nagios_client]",
+    "recipe[nagios3::nagios_server]"
+  ]
+}
+
+  c. chef-solo -c solo.rb -j recipes.json
+
+
+~  Check Nagios in port http://server-IP/nagios
+  User: nagiosadmin
+  Pass: password1234
